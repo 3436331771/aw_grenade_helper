@@ -376,6 +376,10 @@ function getWeaponName(me)
         weapon_name = weapon_name:sub(2)
     end
 
+    if (weapon_name == "incendiarygrenade") then
+        weapon_name = "molotovgrenade";
+    end
+
     return weapon_name;
 end
 
