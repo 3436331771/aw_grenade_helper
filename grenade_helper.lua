@@ -7,7 +7,7 @@ local GAME_COMMAND_COOLDOWN = 20;
 
 local maps = {}
 
-local GH_WINDOW_ACTIVE = gui.Checkbox(gui.Reference("VISUALS", "MISC", "Assistance"), "GH_WINDOW_ACTIVE", "Grenade Helper", true);
+local GH_WINDOW_ACTIVE = gui.Checkbox(gui.Reference("VISUALS", "MISC", "Assistance"), "GH_WINDOW_ACTIVE", "Grenade Helper", false);
 local GH_WINDOW = gui.Window("GH_WINDOW", "Grenade Helper", 200, 200, 450, 175);
 local GH_NEW_NADE_GB = gui.Groupbox(GH_WINDOW, "Add grenade throw", 15, 15, 200, 100);
 local GH_ENABLE_KEYBINDS = gui.Checkbox(GH_NEW_NADE_GB, "GH_ENABLE_KEYBINDS", "Enable Add Keybinds", false);
@@ -15,6 +15,7 @@ local GH_ADD_KB = gui.Keybox(GH_NEW_NADE_GB, "GH_ADD_KB", "Add key", "");
 local GH_DEL_KB = gui.Keybox(GH_NEW_NADE_GB, "GH_DEL_KB", "Remove key", "");
 
 local GH_SETTINGS_GB = gui.Groupbox(GH_WINDOW, "Settings", 230, 15, 200, 100);
+local GH_HELPER_ENABLED = gui.Checkbox(GH_SETTINGS_GB, "GH_HELPER_ENABLED", "Enable Grenade Helper", false);
 local GH_VISUALS_DISTANCE_SL = gui.Slider(GH_SETTINGS_GB, "GH_VISUALS_DISTANCE_SL", "Display Distance", 800, 1, 9999);
 
 -- We're misusing the Editbox to store our data in a hacky way
@@ -56,6 +57,10 @@ local chat_add_messages = {
 local current_map_name;
 
 function gameEventHandler(event)
+    if (GH_HELPER_ENABLED:GetValue() == false) then
+        return;
+    end
+
     local event_name = event:GetName();
     if (event_name == "player_say" and throw_to_add ~= nil) then
         local self_pid = client.GetLocalPlayerIndex();
@@ -113,9 +118,13 @@ function gameEventHandler(event)
 end
 
 function drawEventHandler()
-    screen_w, screen_h = draw.GetScreenSize();
     showWindow();
 
+    if (GH_HELPER_ENABLED:GetValue() == false) then
+        return;
+    end
+
+    screen_w, screen_h = draw.GetScreenSize();
     if (my_last_load ~= nil and my_last_load > globals.TickCount()) then
         my_last_load = globals.TickCount();
     end
@@ -156,6 +165,10 @@ function drawEventHandler()
 end
 
 function moveEventHandler(cmd)
+    if (GH_HELPER_ENABLED:GetValue() == false) then
+        return;
+    end
+
     local me = entities.GetLocalPlayer();
     if (current_map_name == nil or maps == nil or maps[current_map_name] == nil or me == nil or not me:IsAlive()) then
         throw_to_add = nil;
