@@ -27,8 +27,8 @@ local throw_to_add;
 local chat_add_step = 1;
 local message_to_say;
 local my_last_message = globals.TickCount();
-local my_last_load = globals.TickCount();
 local screen_w, screen_h = 0,0;
+local should_load_data = true;
 
 local nade_type_mapping = {
     "auto",
@@ -67,8 +67,10 @@ function gameEventHandler(event)
 
     if (event_name == "player_say" and throw_to_add ~= nil) then
         local self_pid = client.GetLocalPlayerIndex();
+        print(self_pid);
         local chat_uid = event:GetInt('userid');
         local chat_pid = client.GetPlayerIndexByUserID(chat_uid);
+        print(chat_pid);
 
         if (self_pid ~= chat_pid) then
             return;
@@ -125,6 +127,11 @@ function gameEventHandler(event)
 end
 
 function drawEventHandler()
+    if (should_load_data) then
+        loadData();
+        should_load_data = false;
+    end
+
     showWindow();
 
     if (GH_HELPER_ENABLED:GetValue() == false) then
@@ -132,13 +139,6 @@ function drawEventHandler()
     end
 
     screen_w, screen_h = draw.GetScreenSize();
-    if (my_last_load ~= nil and my_last_load > globals.TickCount()) then
-        my_last_load = globals.TickCount();
-    end
-
-    if (globals.TickCount() - my_last_load > 150) then
-        loadData();
-    end
 
     local active_map_name = engine.GetMapName();
 
@@ -476,11 +476,21 @@ end
 
 function parseStringifiedTable(stringified_table)
     local new_map = {};
-    for i in string.gmatch(stringified_table, "([^;]*);") do
-        local matches = {};
-        string.gmatch(i, "(.*),")
 
-        for word in string.gmatch(i, "([^,]*)") do
+    local strings_to_parse = {};
+    -- Legacy support
+    for i in string.gmatch(stringified_table, "([^;]*);") do
+        table.insert(strings_to_parse, i);
+    end
+
+    for i in string.gmatch(stringified_table, "([^\n]*)\n") do
+        table.insert(strings_to_parse, i);
+    end
+
+    for i=1, #strings_to_parse do
+        local matches = {};
+
+        for word in string.gmatch(strings_to_parse[i], "([^,]*)") do
             table.insert(matches, word);
         end
 
@@ -502,6 +512,7 @@ function parseStringifiedTable(stringified_table)
             ay = tonumber(matches[9]);
         });
     end
+
     return new_map;
 end
 
@@ -510,7 +521,7 @@ function convertTableToDataString(object)
     for map_name, map in pairs(object) do
         for i, throw in ipairs(map) do
             if (throw ~= nil) then
-                converted = converted..map_name.. ','..throw.name..','..throw.type..','..throw.nade..','..throw.pos.x..','..throw.pos.y..','..throw.pos.z..','..throw.ax..','..throw.ay..';'
+                converted = converted..map_name.. ','..throw.name..','..throw.type..','..throw.nade..','..throw.pos.x..','..throw.pos.y..','..throw.pos.z..','..throw.ax..','..throw.ay..'\n';
             end
         end
     end
