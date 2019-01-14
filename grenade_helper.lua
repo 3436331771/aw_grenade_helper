@@ -52,6 +52,10 @@ local chat_add_messages = {
     "[GH] Please enter the throw type (stand / jump / run / crouch / right):"
 }
 
+-- Just open up the file in append mode, should create the file if it doesn't exist and won't override anything if it does
+local my_file = file.Open(GRENADE_SAVE_FILE_NAME, "a");
+my_file:Close();
+
 local current_map_name;
 
 function gameEventHandler(event)
