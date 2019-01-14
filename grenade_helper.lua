@@ -3,12 +3,13 @@ local THROW_RADIUS = 20;
 local WALK_SPEED = 100;
 local DRAW_MARKER_DISTANCE = 100;
 local GH_ACTION_COOLDOWN = 30;
-local GAME_COMMAND_COOLDOWN = 20;
+local GAME_COMMAND_COOLDOWN = 40;
+local GRENADE_SAVE_FILE_NAME = "grenade_helper_data.dat";
 
 local maps = {}
 
 local GH_WINDOW_ACTIVE = gui.Checkbox(gui.Reference("VISUALS", "MISC", "Assistance"), "GH_WINDOW_ACTIVE", "Grenade Helper", false);
-local GH_WINDOW = gui.Window("GH_WINDOW", "Grenade Helper", 200, 200, 450, 175);
+local GH_WINDOW = gui.Window("GH_WINDOW", "Grenade Helper", 200, 200, 450, 150);
 local GH_NEW_NADE_GB = gui.Groupbox(GH_WINDOW, "Add grenade throw", 15, 15, 200, 100);
 local GH_ENABLE_KEYBINDS = gui.Checkbox(GH_NEW_NADE_GB, "GH_ENABLE_KEYBINDS", "Enable Add Keybinds", false);
 local GH_ADD_KB = gui.Keybox(GH_NEW_NADE_GB, "GH_ADD_KB", "Add key", "");
@@ -17,9 +18,6 @@ local GH_DEL_KB = gui.Keybox(GH_NEW_NADE_GB, "GH_DEL_KB", "Remove key", "");
 local GH_SETTINGS_GB = gui.Groupbox(GH_WINDOW, "Settings", 230, 15, 200, 100);
 local GH_HELPER_ENABLED = gui.Checkbox(GH_SETTINGS_GB, "GH_HELPER_ENABLED", "Enable Grenade Helper", false);
 local GH_VISUALS_DISTANCE_SL = gui.Slider(GH_SETTINGS_GB, "GH_VISUALS_DISTANCE_SL", "Display Distance", 800, 1, 9999);
-
--- We're misusing the Editbox to store our data in a hacky way
-local MY_THROW_DATA = gui.Editbox(GH_WINDOW, "GH_THROW_DATA", "");
 
 local window_show = false;
 local window_cb_pressed = true;
@@ -62,6 +60,7 @@ function gameEventHandler(event)
     end
 
     local event_name = event:GetName();
+
     if (event_name == "player_say" and throw_to_add ~= nil) then
         local self_pid = client.GetLocalPlayerIndex();
         local chat_uid = event:GetInt('userid');
@@ -101,7 +100,11 @@ function gameEventHandler(event)
             table.insert(maps[current_map_name], throw_to_add);
             throw_to_add = nil;
             local value = convertTableToDataString(maps);
-            gui.SetValue("GH_THROW_DATA", value);
+            local data_file = file.Open(GRENADE_SAVE_FILE_NAME, "w");
+            if (data_file ~= nil) then
+                data_file:Write(value);
+                data_file:Close();
+            end
 
             chat_add_step = 0;
             return;
@@ -156,7 +159,7 @@ function drawEventHandler()
         my_last_message = globals.TickCount();
     end
 
-    if (message_to_say ~= nil and globals.TickCount() - my_last_message > 60) then
+    if (message_to_say ~= nil and globals.TickCount() - my_last_message > 100) then
         client.ChatTeamSay(message_to_say);
         message_to_say = nil;
     end
@@ -223,7 +226,13 @@ function showWindow()
 end
 
 function loadData()
-    local throw_data = gui.GetValue("GH_THROW_DATA");
+    local data_file = file.Open(GRENADE_SAVE_FILE_NAME, "r");
+    if (data_file == nil) then
+        return;
+    end
+
+    local throw_data = data_file:Read();
+    data_file:Close();
     if (throw_data ~= nil and throw_data ~= "") then
         maps = parseStringifiedTable(throw_data);
     end
@@ -269,7 +278,11 @@ function doDel(throw)
     removeFirstThrow(throw);
 
     local value = convertTableToDataString(maps);
-    gui.SetValue("GH_THROW_DATA", value);
+    local data_file = file.Open(GRENADE_SAVE_FILE_NAME, "w");
+    if (data_file ~= nil) then
+        data_file:Write(value);
+        data_file:Close();
+    end
 end
 
 function showNadeThrows()
@@ -436,17 +449,17 @@ function getClosestThrow(map, me, cmd)
         end
 
         if (
-            closest_distance == nil
-            or (
-                distance <= THROW_RADIUS
+        closest_distance == nil
+                or (
+        distance <= THROW_RADIUS
                 and (
-                    closest_distance_from_center == nil
-                    or (closest_distance_from_center ~= nil and distance_from_center ~= nil and distance_from_center < closest_distance_from_center)
-                )
-            )
-            or (
-                (closest_distance_from_center == nil and distance < closest_distance)
-            )
+        closest_distance_from_center == nil
+                or (closest_distance_from_center ~= nil and distance_from_center ~= nil and distance_from_center < closest_distance_from_center)
+        )
+        )
+                or (
+        (closest_distance_from_center == nil and distance < closest_distance)
+        )
         ) then
             closest_throw = throw;
             closest_distance = distance;
