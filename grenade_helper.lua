@@ -478,11 +478,6 @@ function parseStringifiedTable(stringified_table)
     local new_map = {};
 
     local strings_to_parse = {};
-    -- Legacy support
-    for i in string.gmatch(stringified_table, "([^;]*);") do
-        table.insert(strings_to_parse, i);
-    end
-
     for i in string.gmatch(stringified_table, "([^\n]*)\n") do
         table.insert(strings_to_parse, i);
     end
